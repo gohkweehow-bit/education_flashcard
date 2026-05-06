@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>H1CL Oral Revision</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;700;900&display=swap');
+        
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+
+        .is-flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 1.5rem;
+            border-radius: 2rem;
+        }
+
+        .card-back {
+            transform: rotateY(180deg);
+            align-items: flex-start;
+            justify-content: flex-start;
+        }
+
+        .instruction-top {
+            font-size: 0.75rem;
+            letter-spacing: 0.2em;
+            color: #94a3b8;
+            margin-bottom: 2rem;
+            font-weight: 500;
+        }
+
+        .main-word {
+            font-weight: 900;
+            background: linear-gradient(to bottom right, #fff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+            white-space: nowrap; /* 强制单行 */
+            width: 100%;
+            display: block;
+        }
+
+        /* 根据字数自动缩放字号的辅助类（JS控制） */
+        .word-xl { font-size: 4rem; }
+        .word-lg { font-size: 3rem; }
+        .word-md { font-size: 2.2rem; }
+
+        .pinyin-box {
+            font-family: 'Times New Roman', serif;
+            color: #818cf8;
+            font-size: 1.25rem;
+            font-style: italic;
+        }
+
+        .custom-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center p-4">
+
+    <!-- Header -->
+    <div class="fixed top-8 left-0 right-0 px-8 flex justify-between items-center z-10">
+        <div>
+            <h1 class="text-xs font-black tracking-widest text-indigo-400 uppercase">H1CL Oral Prep</h1>
+            <p class="text-lg font-bold" id="card-counter">01 / 26</p>
+        </div>
+        <button onclick="speakCurrentWord(event)" class="w-12 h-12 rounded-full glass-card flex items-center justify-center hover:bg-white/10 active:scale-90 transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+            </svg>
+        </button>
+    </div>
+
+    <!-- Main Flashcard -->
+    <div id="card-container" class="relative w-full max-w-md aspect-[3/4] cursor-pointer" onclick="toggleFlip()">
+        <div id="card-inner-wrap" class="card-inner w-full h-full">
+            
+            <!-- Front -->
+            <div class="card-front glass-card shadow-2xl">
+                <span class="instruction-top">点击查看释义</span>
+                <h2 id="word-front" class="main-word">加载中</h2>
+                <div class="mt-8 bg-indigo-500/10 text-indigo-400 px-3 py-1 rounded-full text-[10px] font-bold tracking-widest border border-indigo-400/20 uppercase">Vocabulary</div>
+            </div>
+
+            <!-- Back -->
+            <div class="card-back glass-card shadow-2xl">
+                <span class="instruction-top">点击返回词卡</span>
+                
+                <div class="w-full space-y-6 overflow-y-auto custom-scroll pr-2">
+                    <div>
+                        <h2 id="word-back" class="text-3xl font-black text-white whitespace-nowrap">词汇名称</h2>
+                        <p id="pinyin-back" class="pinyin-box mt-1">pīnyīn</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <section>
+                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">搭配应用 / Collocation</label>
+                            <p id="coll-back" class="text-lg font-medium text-slate-200 border-l-2 border-indigo-500 pl-4 py-1 leading-relaxed"></p>
+                        </section>
+
+                        <section>
+                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">详细释义 / Meaning</label>
+                            <div class="bg-white/5 p-4 rounded-xl border border-white/5">
+                                <p id="def-zh-back" class="text-base text-slate-100 font-medium mb-1"></p>
+                                <p id="def-en-back" class="text-xs text-slate-400 italic"></p>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="fixed bottom-12 flex items-center gap-8">
+        <button onclick="prevCard(event)" class="w-14 h-14 rounded-full glass-card flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+        </button>
+        <button onclick="nextCard(event)" class="w-14 h-14 rounded-full glass-card flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+        </button>
+    </div>
+
+    <script>
+        const vocabulary = [
+            { word: "环球视野", pinyin: "huán qiú shì yě", coll: "扩展个人的{环球视野}", zh: "具有国际化的眼光和思维方式。", en: "Global perspective; international mindset." },
+            { word: "增广见闻", pinyin: "zēng guǎng jiàn wén", coll: "通过出国交流{增广见闻}", zh: "增加知识，开阔眼界。", en: "To broaden one's horizons." },
+            { word: "批判性思维", pinyin: "pī pàn xìng sī wéi", coll: "培养独立思考和{批判性思维}", zh: "客观分析并评估信息，不盲从。", en: "Critical thinking." },
+            { word: "公民素养", pinyin: "gōng mín sù yǎng", coll: "提升年轻一代的{公民素养}", zh: "身为公民应具备的社会责任感和品格修养。", en: "Civic literacy." },
+            { word: "竞争激烈", pinyin: "jìng zhēng jī liè", coll: "在这个{竞争激烈}的时代脱颖而出", zh: "资源或职位的争夺非常残酷。", en: "Fierce competition." },
+            { word: "认识异国文化", pinyin: "rèn shi yì guó wén huà", coll: "尊重并{认识异国文化}", zh: "了解不同国家的风土人情与价值观。", en: "Understanding foreign cultures." },
+            { word: "与时并进", pinyin: "yǔ shí bìng jìn", coll: "教育体系必须{与时并进}", zh: "跟着时代的发展不断进步。", en: "Keep pace with the times." },
+            { word: "培养协作能力", pinyin: "péi yǎng xié zuò néng lì", coll: "在小组中{培养协作能力}", zh: "学习与他人共同合作完成任务的能力。", en: "Cultivating collaboration skills." },
+            { word: "集思广益", pinyin: "jí sī guǎng yì", coll: "大家{集思广益}，共寻解决办法", zh: "集中众人的智慧，吸收各方的益处。", en: "Pool collective wisdom." },
+            { word: "建立社交", pinyin: "jiàn lì shè jiāo", coll: "通过课外活动{建立社交}圈子", zh: "在社会环境中与人交往，拓展人际关系。", en: "Building social connections." },
+            { word: "情感能力", pinyin: "qíng gǎn néng lì", coll: "提高学生的自控力和{情感能力}", zh: "认知、管理自己和他人情绪的能力。", en: "Emotional intelligence." },
+            { word: "沟通能力", pinyin: "gōng tōng néng lì", coll: "良好的{沟通能力}是成功的关键", zh: "有效传递信息与人际互动的方法。", en: "Communication skills." },
+            { word: "自主学习", pinyin: "zì zhǔ xué xí", coll: "养成终身{自主学习}的好习惯", zh: "不依赖他人，自觉地安排学习内容。", en: "Self-directed learning." },
+            { word: "栋梁", pinyin: "dòng liáng", coll: "成为国家的{栋梁}之才", zh: "比喻能担负重任的人才。", en: "Pillar of the nation." },
+            { word: "未来的主人翁", pinyin: "wèi lái zhǔ rén wēng", coll: "青年是国家{未来的主人翁}", zh: "指现在的年轻人将掌握国家未来的命运。", en: "Future masters of the country." },
+            { word: "德智体群美", pinyin: "dé zhì tǐ qún měi", coll: "注重{德智体群美}的平衡发展", zh: "全面教育的五个维度：德、智、体、社会、审美。", en: "Five aspects of development." },
+            { word: "社区服务", pinyin: "shè qū fú wù", coll: "参与{社区服务}能培养同情心", zh: "为所在社区提供的公益性义务劳动。", en: "Community service; VIA." },
+            { word: "德育在于行动", pinyin: "dé yù zài yú xíng dòng", coll: "秉持{德育在于行动}的原则", zh: "强调道德教育应体现于实际行为。", en: "Moral education is rooted in action." },
+            { word: "21世纪技能", pinyin: "èr shí yī shì jì jì néng", coll: "掌握必备的{21世纪技能}", zh: "适应新时代挑战所需的软硬技能。", en: "21st Century Competencies." },
+            { word: "双语教育", pinyin: "shuāng yǔ jiào yù", coll: "{双语教育}是教育基石", zh: "同时掌握母语和英语的教育体系。", en: "Bilingual education." },
+            { word: "文化素养", pinyin: "wén huà sù yǎng", coll: "深厚的{文化素养}令人钦佩", zh: "在文化知识、艺术审美上的修养。", en: "Cultural literacy." },
+            { word: "脱颖而出", pinyin: "tuō yǐng ér chū", coll: "唯有不断进步，才能{脱颖而出}", zh: "比喻本领显露出来，超越他人。", en: "Stand out from the crowd." },
+            { word: "竞争力", pinyin: "jìng zhēng lì", coll: "维持国家在全球的{竞争力}", zh: "在竞争中取胜的综合力量。", en: "Competitiveness." },
+            { word: "体育", pinyin: "tǐ yù", coll: "参与{体育}项目培养坚韧意志", zh: "通过身体活动增强体质的教育。", en: "Physical Education." },
+            { word: "韧性", pinyin: "rèn xìng", coll: "在挫折中磨炼心理{韧性}", zh: "顽强持久、不轻易折断的精神。", en: "Resilience." },
+            { word: "强身健体", pinyin: "qiáng shēn jiàn tǐ", coll: "为了{强身健体}，他每天跑步", zh: "使身体强壮健康。", en: "Strengthen the body." }
+        ];
+
+        let currentIndex = 0;
+        let isFlipped = false;
+        let startX = 0;
+
+        function updateCard() {
+            const item = vocabulary[currentIndex];
+            const container = document.getElementById('card-container');
+            const frontEl = document.getElementById('word-front');
+            const backWordEl = document.getElementById('word-back');
+            
+            // Reset state
+            container.classList.remove('is-flipped');
+            isFlipped = false;
+
+            // Update content
+            frontEl.innerText = item.word;
+            backWordEl.innerText = item.word;
+
+            // Auto Font Sizing based on character count
+            frontEl.className = 'main-word'; // reset
+            if (item.word.length <= 4) frontEl.classList.add('word-xl');
+            else if (item.word.length <= 6) frontEl.classList.add('word-lg');
+            else frontEl.classList.add('word-md');
+
+            // Back word scaling
+            if (item.word.length > 5) backWordEl.classList.replace('text-3xl', 'text-xl');
+            else backWordEl.classList.replace('text-xl', 'text-3xl');
+
+            document.getElementById('pinyin-back').innerText = item.pinyin;
+            document.getElementById('def-zh-back').innerText = item.zh;
+            document.getElementById('def-en-back').innerText = item.en;
+            document.getElementById('card-counter').innerText = `${(currentIndex + 1).toString().padStart(2, '0')} / ${vocabulary.length}`;
+            
+            const highlightedColl = item.coll.replace(`{${item.word}}`, `<span class="text-indigo-400 font-bold">${item.word}</span>`);
+            document.getElementById('coll-back').innerHTML = highlightedColl;
+        }
+
+        function toggleFlip() {
+            isFlipped = !isFlipped;
+            document.getElementById('card-container').classList.toggle('is-flipped', isFlipped);
+        }
+
+        function nextCard(e) {
+            if (e) e.stopPropagation();
+            if (currentIndex < vocabulary.length - 1) {
+                currentIndex++;
+                updateCard();
+            }
+        }
+
+        function prevCard(e) {
+            if (e) e.stopPropagation();
+            if (currentIndex > 0) {
+                currentIndex--;
+                updateCard();
+            }
+        }
+
+        function speakCurrentWord(e) {
+            if (e) e.stopPropagation();
+            const text = vocabulary[currentIndex].word;
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.lang = 'zh-CN';
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(msg);
+        }
+
+        // Swipe Detection
+        document.getElementById('card-container').addEventListener('touchstart', e => startX = e.touches[0].clientX);
+        document.getElementById('card-container').addEventListener('touchend', e => {
+            const diff = startX - e.changedTouches[0].clientX;
+            if (Math.abs(diff) > 60) {
+                if (diff > 0) nextCard();
+                else prevCard();
+            }
+        });
+
+        // Key Listeners
+        window.addEventListener('keydown', e => {
+            if (e.key === 'ArrowRight') nextCard();
+            if (e.key === 'ArrowLeft') prevCard();
+            if (e.key === ' ') { e.preventDefault(); toggleFlip(); }
+        });
+
+        updateCard();
+    </script>
+</body>
+</html>
